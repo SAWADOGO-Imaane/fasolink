@@ -1,0 +1,67 @@
+# FasoLink : bases de données (100 % open source), lancées par outils/deployer.py et lancer.bat / lancer.sh
+#   PostgreSQL : comptes, rôles, appareils, sessions, conversations, journal d'audit (source de vérité)
+#   CouchDB    : enveloppes chiffrées uniquement (le serveur ne peut pas les lire)
+# Les données vivent dans des volumes Docker (fasolink-comptes, fasolink-messages), hors du dossier du projet.
+# Les ports ne sont ouverts que sur 127.0.0.1 : les bases ne sont jamais exposées sur le réseau.
+name: fasolink
+
+x-journaux: &journaux
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+networks:
+  interne:
+    name: fasolink-interne
+
+volumes:
+  comptes:
+    name: fasolink-comptes
+  messages:
+    name: fasolink-messages
+
+services:
+  comptes:
+    image: postgres:16-alpine
+    container_name: fasolink-comptes
+    restart: unless-stopped
+    logging: *journaux
+    networks: [interne]
+    # Aucune requête ni connexion journalisée (minimisation des métadonnées)
+    command: ["postgres","-c","log_statement=none","-c","log_min_error_statement=panic","-c","log_connections=off","-c","log_disconnections=off"]
+    stop_grace_period: 60s
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - comptes:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  messages:
+    image: couchdb:3
+    container_name: fasolink-messages
+    restart: unless-stopped
+    logging: *journaux
+    networks: [interne]
+    environment:
+      COUCHDB_USER: ${COUCHDB_USER}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
+      COUCHDB_SECRET: ${COUCHDB_SECRET}
+    volumes:
+      - messages:/opt/couchdb/data
+    ports:
+      - "127.0.0.1:5984:5984"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:5984/_up"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
