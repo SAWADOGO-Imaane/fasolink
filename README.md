@@ -38,7 +38,7 @@ Le déploiement crée 10 comptes **fictifs** (1 superviseur, 2 administrateurs, 
 
 ## Tests
 
-25 tests sur bases temporaires (second facteur, rôles, refus du clair, blocage) : `pip install -r tests/requirements.txt`, puis `pytest tests` avec le Python de `.venv`.
+26 tests sur bases temporaires (second facteur, rôles, refus du clair, blocage) : `pip install -r tests/requirements.txt`, puis `pytest tests` avec le Python de `.venv`.
 
 ## Technologies et licences
 
@@ -61,4 +61,4 @@ Le code de FasoLink est publié sous **MIT** (fichier `LICENSE`). Les armoiries 
 - **Expiration :** l'enveloppe est supprimée à la lecture suivante de la conversation, pas à l'heure exacte.
 - **Exploitation :** certificat auto-signé, limitation des tentatives en mémoire (un seul processus serveur). Le mode démonstration ne doit jamais servir en production.
 
-Détail des menaces et protections : `docs/note-securite.pdf`.
+Pour aller plus loin : `docs/note-securite.pdf`, `docs/guide-entretien.md`, `docs/dependances.md` (toutes les dépendances Python) et `outils/inspecter_bases.py` (contrôle de ce que stocke CouchDB).

@@ -39,6 +39,7 @@ FasoLink/
 │   ├── postgres/schema.sql      Tables, compte API limité, journal d'audit en ajout seul, dernier superviseur protégé
 │   └── couchdb/garde.js         Garde-fou : refuse tout champ en plus et tout contenu hors format d'enveloppe
 ├── outils/deployer.py           Script de déploiement appelé par deployer.bat / .sh
+├── outils/inspecter_bases.py    Montre ce que stocke CouchDB (épreuve « Le serveur ne lit rien »)
 └── configuration/               CRÉÉ AU DÉPLOIEMENT, jamais publié : .env (mots de passe), demo.json, tls/
 ```
 
@@ -139,7 +140,7 @@ Note : un message envoyé à quelqu'un qui ne s'est **jamais connecté** lui ser
 - [ ] **Vidéo de 3 minutes** : section 5, étapes 1, 2, 4 et 6.
 - [ ] **Fiche équipe** + attestations d'inscription 2026-2027.
 - [ ] **Préparer l'entretien** : chaque membre sait expliquer les fonctions de la section 4.
-- [x] Bonus **+2** : tests automatisés des fonctions de sécurité (`tests/`, 25 tests).
+- [x] Bonus **+2** : tests automatisés des fonctions de sécurité (`tests/`, 26 tests).
 - [ ] Bonus **+3** : interface en langue nationale ; le mécanisme existe (Paramètres → Langue, objet `LANGS` dans `FasoLink.html`) mais n'a que 9 libellés en Dioula non relus.
 
 ### Technologies et licences à citer dans le README
