@@ -61,4 +61,4 @@ Le code de FasoLink est publié sous **MIT** (fichier `LICENSE`). Les armoiries 
 - **Expiration :** l'enveloppe est supprimée à la lecture suivante de la conversation, pas à l'heure exacte.
 - **Exploitation :** certificat auto-signé, limitation des tentatives en mémoire (un seul processus serveur). Le mode démonstration ne doit jamais servir en production.
 
-Pour aller plus loin : `docs/note-securite.pdf`, `docs/guide-entretien.md`, `docs/dependances.md` (toutes les dépendances Python) et `outils/inspecter_bases.py` (contrôle de ce que stocke CouchDB).
+Pour aller plus loin : `docs/note-securite.pdf`, `docs/dependances.md` (toutes les dépendances Python) et `outils/inspecter_bases.py` (contrôle de ce que stocke CouchDB).
