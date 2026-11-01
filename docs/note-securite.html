@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Note de sécurité — FasoLink</title>
+<style>
+@page{size:A4;margin:14mm 16mm}
+body{font:9.6pt/1.32 Calibri,Arial,sans-serif;color:#1a1a1a;margin:0}
+h1{font-size:16pt;margin:0 0 5pt;color:#0b5d3b}
+h2{font-size:11pt;margin:8pt 0 3pt;color:#0b5d3b}
+p{margin:0 0 4pt}
+ul{margin:0 0 4pt;padding-left:15pt}li{margin-bottom:1.5pt}
+table{border-collapse:collapse;width:100%;margin:3pt 0 5pt;font-size:9pt}
+th,td{border:1px solid #bbb;padding:2pt 5pt;text-align:left;vertical-align:top}th{background:#e9f2ed}
+td:first-child{width:25%;font-weight:600}
+tr,li{break-inside:avoid}
+</style></head><body>
+<h1>Note de sécurité — FasoLink</h1>
+
+<h2>1. Menaces prises en compte et protections</h2>
+<table>
+<tr><th>Menace</th><th>Protections en place</th></tr>
+<tr><td>Serveur saisi ou base volée</td><td>Chiffrement de bout en bout Olm/Megolm dans le navigateur : messages, fichiers, photos et vocaux arrivent chiffrés, et les clés privées restent sur les appareils. Mots de passe hachés en Argon2, secrets TOTP chiffrés (Fernet), seul le SHA-256 des jetons de session est stocké.</td></tr>
+<tr><td>Contenu en clair envoyé au serveur</td><td>Le client refuse d'envoyer si le chiffrement n'est pas prêt. L'API vérifie la forme de chaque enveloppe (structure, base64, version du format Olm) et CouchDB refuse tout champ supplémentaire ou tout contenu hors format.</td></tr>
+<tr><td>Intrus</td><td>Pas d'inscription libre : code d'activation à usage unique, valable 72 h, délivré par un administrateur. Mot de passe + TOTP obligatoires, code non réutilisable, 5 tentatives par tranche de 15 minutes. Un non-membre est refusé par le serveur sur une conversation.</td></tr>
+<tr><td>Agent qui part, appareil perdu</td><td>Session, statut et appareil sont revérifiés à chaque requête. Le blocage coupe sessions, appareils et appartenances dans la même transaction ; l'interface de l'agent est éjectée en 3 s au plus et efface ses clés locales. L'envoi suivant d'un membre utilise une nouvelle clé de groupe. L'agent peut aussi déclencher le bouton d'urgence.</td></tr>
+<tr><td>Administrateur compromis</td><td>Hiérarchie vérifiée côté serveur : l'admin n'agit que sur les agents, le superviseur sur agents et admins, personne sur lui-même. Dernier superviseur protégé. Journal d'audit en ajout seul, y compris pour le propriétaire de la base. Un administrateur ne peut pas lire les messages.</td></tr>
+<tr><td>Hameçonnage</td><td>Le TOTP limite l'usage d'un mot de passe volé. Il ne protège pas contre un faux site qui relaie le code en temps réel : c'est une limite.</td></tr>
+<tr><td>Interception réseau</td><td>HTTPS, en plus du chiffrement de bout en bout. Les bases n'écoutent que sur 127.0.0.1. Aucune ressource externe, politique CSP stricte. Certificat auto-signé en démonstration, certificat de l'État requis en production.</td></tr>
+<tr><td>Substitution de clés par le serveur</td><td>Comparaison des empreintes dans la conversation ; si la clé d'un appareil vérifié change, l'envoi est bloqué.</td></tr>
+<tr><td>Capture d'écran</td><td>Non bloquée, car un navigateur ne le permet pas. Dissuasion : filigrane nominatif, flou hors focus. Traçabilité : touche Impr. écran signalée au journal. Impression et copie des messages classifiés bloquées dans l'application.</td></tr>
+<tr><td>Appareil volé éteint</td><td>Clés locales chiffrées avec une clé dérivée du mot de passe (PBKDF2-SHA256, 310 000 itérations).</td></tr>
+</table>
+<p>25 tests automatisés (<code>tests/</code>) couvrent le second facteur, les rôles, le refus du clair et le blocage. Ils ne remplacent pas un audit de sécurité.</p>
+
+<h2>2. Métadonnées visibles par le serveur</h2>
+<p><b>Le serveur ne voit pas</b> : le texte, les fichiers, photos et vocaux, les noms de fichiers, les clés privées, ni le contenu des accusés de lecture.</p>
+<p><b>Le serveur voit</b> :</p>
+<ul>
+<li><b>Qui échange avec qui</b> : les membres de chaque conversation et les liaisons privées, y compris acceptées ou refusées. Le serveur connaît donc ce graphe d'échanges.</li>
+<li><b>Quand et combien</b> : l'expéditeur, l'horodatage et la taille de chaque enveloppe, et son type (message ou clé).</li>
+<li><b>La date d'expiration</b> : elle est en clair pour permettre la suppression. Un écart de 72 h ou de 24 h révèle donc qu'un message est classifié, et à quel niveau.</li>
+<li><b>Les noms des groupes</b>, l'annuaire (nom, service, fonction), la liste des appareils et leurs clés publiques.</li>
+<li><b>Les événements du journal d'audit</b> : connexions, refus, enrôlements, blocages, signalements de capture, avec auteur et date.</li>
+</ul>
+<p><b>Mesures de réduction</b> : aucun journal d'accès HTTP (ni IP, ni URL), PostgreSQL et CouchDB sans journal de requêtes, journaux Docker limités en taille, enveloppes expirées supprimées, flux temps réel limité aux identifiants de conversation, aucun contenu dans le journal d'audit. Conseil aux agents : donner aux groupes des noms neutres.</p>
+
+<h2>3. Limites connues</h2>
+<ul>
+<li><b>Bibliothèque :</b> libolm n'est plus maintenue depuis 2024 (successeur : vodozemac) et des faiblesses par canal auxiliaire y ont été signalées. Choix assumé pour ce prototype ; une migration serait nécessaire avant toute production.</li>
+<li><b>Contrôle du clair :</b> il vérifie une forme, pas le chiffrement réel. Un client malveillant qui imite le format d'enveloppe peut le franchir ; le client officiel chiffre toujours.</li>
+<li><b>Annuaire de clés :</b> le serveur distribue les clés publiques. Sans comparaison des empreintes par les agents, une substitution reste possible, et un administrateur malveillant peut enrôler un faux compte (action tracée).</li>
+<li><b>Sécurité persistante :</b> le protocole est utilisé avec une clé de secours et non des clés à usage unique. La première prise de contact Olm a donc une garantie plus faible ; Megolm, par conception, ne renouvelle pas la clé à chaque message.</li>
+<li><b>Appareil compromis :</b> un logiciel espion lit ce que l'agent voit. Les clés locales sont dans le <code>localStorage</code> ; pendant l'utilisation, la clé de déverrouillage est en mémoire de l'onglet.</li>
+<li><b>Appareil hors ligne :</b> l'effacement local a lieu à la reconnexion. D'ici là, l'appareil garde ce qu'il a déjà reçu, sans recevoir de nouveaux messages du serveur.</li>
+<li><b>Captures :</b> seule une application native pourrait les bloquer (FLAG_SECURE sous Android). Une photo de l'écran reste toujours possible.</li>
+<li><b>Expiration :</b> l'enveloppe expirée est supprimée à la lecture suivante de la conversation, pas à l'heure exacte, et CouchDB garde une trace de la suppression jusqu'au compactage.</li>
+<li><b>Nouveaux appareils :</b> ils reçoivent les clés quand un expéditeur revient en ligne. Si l'appareil d'origine a disparu, les anciens messages restent illisibles.</li>
+<li><b>Exploitation :</b> la clé qui protège les secrets TOTP est dans <code>configuration/.env</code>, sur le serveur : une compromission complète du serveur expose ces secrets. La limitation des tentatives est gardée en mémoire (un seul processus serveur).</li>
+<li><b>Mode démonstration :</b> <code>FASOLINK_DEMO=1</code> délivre des identifiants fictifs et ne doit jamais servir en production (<code>lancer.bat --sans-demo</code>).</li>
+</ul>
+</body></html>

@@ -9,10 +9,12 @@ Ce document explique ce qui a été construit, comment le lancer, et **ce qui re
 
 Prérequis : **Python 3.10+** (python.org, cocher « Add python.exe to PATH ») et **Docker Desktop démarré**.
 
-1. Double-cliquer sur **`deployer.bat`** (une seule fois, quelques minutes) : crée `.venv`, installe les dépendances, démarre PostgreSQL + CouchDB dans Docker, applique le schéma et les protections, crée les comptes de démonstration.
-2. Double-cliquer sur **`lancer.bat`** : démarre tout et ouvre `https://localhost:8443`. Le certificat est auto-signé : « Paramètres avancés » puis « Continuer ». Fermer la fenêtre arrête le serveur.
+1. Double-cliquer sur **`deployer.bat`** (une seule fois, quelques minutes) : crée `.venv`, installe les dépendances, démarre PostgreSQL + CouchDB dans Docker, applique le schéma et les protections, crée les comptes de démonstration, puis lance FasoLink.
+2. Pour les relances, double-cliquer sur **`lancer.bat`** : démarre tout et ouvre `https://localhost:8443`. Le certificat est auto-signé : « Paramètres avancés » puis « Continuer ». Fermer la fenêtre arrête le serveur.
 
-Sous Linux : `bash deployer.sh` puis `bash lancer.sh`. Les deux scripts sont rejouables sans risque (mots de passe et données conservés).
+Si le port 5432 est déjà pris (PostgreSQL installé sur le poste) : ajouter `POSTGRES_PORT=5433` dans `configuration/.env`, puis relancer.
+
+Sous Linux : `bash deployer.sh`, et `bash lancer.sh` pour les relances. Les deux scripts sont rejouables sans risque (mots de passe et données conservés).
 
 **Se connecter :** bouton **« Données de test »** en haut de l'écran de connexion, puis choisir un compte : matricule, mot de passe et code du second facteur sont pré-remplis, il reste à valider. Pour deux agents en même temps : un compte par onglet, en ouvrant un **nouvel** onglet (Ctrl+T), pas en dupliquant.
 
@@ -27,13 +29,15 @@ FasoLink/
 ├── backend/
 │   ├── main.py                  API FastAPI : comptes, TOTP, rôles, révocation, audit, relais d'enveloppes chiffrées
 │   └── requirements.txt         Dépendances Python (versions figées)
+├── docs/                        Note de pré-projet et note de sécurité (HTML source + PDF)
+├── tests/                       Tests automatisés des fonctions de sécurité
 ├── frontend/
 │   ├── FasoLink.html            Interface + chiffrement de bout en bout (un seul fichier, police intégrée)
 │   └── vendor/                  olm.js + olm.wasm (Matrix, Apache 2.0), qrcode.js (MIT), servis localement
 ├── base/
 │   ├── docker-compose.yml       PostgreSQL 16 + CouchDB 3, ports sur 127.0.0.1 uniquement, volumes Docker
 │   ├── postgres/schema.sql      Tables, compte API limité, journal d'audit en ajout seul, dernier superviseur protégé
-│   └── couchdb/garde.js         Garde-fou : refuse tout document contenant un champ en clair
+│   └── couchdb/garde.js         Garde-fou : refuse tout champ en plus et tout contenu hors format d'enveloppe
 ├── outils/deployer.py           Script de déploiement appelé par deployer.bat / .sh
 └── configuration/               CRÉÉ AU DÉPLOIEMENT, jamais publié : .env (mots de passe), demo.json, tls/
 ```
@@ -69,7 +73,7 @@ Le jury désigne une fonction et **le membre qui doit l'expliquer**. Chacun doit
 | Connexion + second facteur, anti-rejeu du code | `backend/main.py` | `connexion`, `totp_valide` |
 | Hiérarchie des rôles | `backend/main.py` | `cible`, `exiger` |
 | Blocage : sessions, appareils, conversations coupés | `backend/main.py` | `couper`, `changer_statut` |
-| Le serveur refuse le clair | `backend/main.py`, `base/couchdb/garde.js` | `envoyer` |
+| Le serveur refuse le clair | `backend/main.py`, `base/couchdb/garde.js` | `envoyer`, `enveloppe_valide`, `charge_olm` |
 | Création des clés de l'appareil | `frontend/FasoLink.html` | `preparerAppareil` |
 | Chiffrement d'un message + rotation à la révocation | `frontend/FasoLink.html` | `envoyerPayload`, `partagerCle` |
 | Réception de la clé et déchiffrement | `frontend/FasoLink.html` | `recevoirCle`, `dechiffrer` |
@@ -97,21 +101,26 @@ Note : un message envoyé à quelqu'un qui ne s'est **jamais connecté** lui ser
 | Exigence | État |
 |---|:---:|
 | Chiffrement de bout en bout messages + fichiers, protocole éprouvé (Olm/Megolm) | ✅ |
-| Hébergement souverain, aucun service tiers, installation par script | ✅ (deux scripts : déployer puis lancer) |
+| Hébergement souverain, aucun service tiers, installation par script | ✅ (`deployer.bat` installe et démarre en une commande) |
 | Agents enrôlés seulement, second facteur TOTP, rôles | ✅ |
 | Révocation immédiate sur tous les appareils | ✅ |
 | Le serveur ne peut pas lire les messages | ✅ |
-| Métadonnées **documentées** | ❌ à écrire dans la note de sécurité (section 7) |
+| Métadonnées **documentées** | ✅ `docs/note-securite.pdf` |
 | Comptes de démonstration fictifs | ✅ |
-| Dossier (README, LICENSE, notes, dépôt Git, vidéo, fiche équipe) | ❌ **voir section 8** |
+| README, LICENSE, notes, tests | ✅ (noms de l'équipe à compléter dans la note de pré-projet) |
+| Dépôt Git public, vidéo, fiche équipe | ❌ **voir section 8** |
 
 ---
 
 ## 7. Limites connues (à écrire honnêtement dans la note de sécurité)
 
-- **Métadonnées vues par le serveur** : qui est membre de quelle conversation, qui envoie quand, taille approximative des messages, noms des groupes, liste des appareils. **Non vus** : texte, fichiers, noms de fichiers, niveau de classification (tout est dans la partie chiffrée). Mesures : pas de graphe de contacts, pas de journal d'accès (ni IP ni URL), PostgreSQL et CouchDB sans journal de requêtes, journaux Docker limités.
+- **Métadonnées vues par le serveur** : qui est membre de quelle conversation (donc qui échange avec qui), qui envoie quand, taille approximative des messages, date d'expiration (72 h ou 24 h : elle révèle qu'un message est classifié et à quel niveau), noms des groupes, liste des appareils. **Non vus** : texte, fichiers, noms de fichiers. Mesures : pas de journal d'accès (ni IP ni URL), PostgreSQL et CouchDB sans journal de requêtes, journaux Docker limités.
 - **libolm** n'est plus maintenue depuis 2024 (successeur : vodozemac) et des faiblesses par canal auxiliaire y ont été signalées. Choix assumé pour le prototype.
 - **Captures d'écran** : impossibles à bloquer dans un navigateur ; seule une application native le peut (Android FLAG_SECURE). Ici : dissuasion et traçabilité.
+- **Contrôle du clair** : il vérifie la forme d'une enveloppe, pas le chiffrement réel ; un client malveillant qui imite le format peut le franchir.
+- **Clé de secours** : le protocole utilise une clé de secours et non des clés à usage unique, avec une garantie plus faible à la première prise de contact.
+- **Appareil hors ligne** : l'effacement local a lieu à la reconnexion ; d'ici là, il garde ce qu'il a déjà reçu.
+- **Expiration** : l'enveloppe expirée est supprimée à la lecture suivante de la conversation, pas à l'heure exacte.
 - **Annuaire des clés** : le serveur distribue les clés publiques ; sans comparaison des empreintes (titre de la conversation), une substitution reste théoriquement possible.
 - **Clés locales** dans le navigateur (`localStorage`), chiffrées par une clé dérivée du mot de passe ; un appareil compromis pendant l'utilisation reste un risque.
 - **Nouveaux appareils** : ils reçoivent les clés au retour de l'expéditeur ; si l'appareil d'origine a disparu, les anciens messages restent illisibles (normal).
@@ -122,15 +131,15 @@ Note : un message envoyé à quelqu'un qui ne s'est **jamais connecté** lui ser
 
 ## 8. Reste à faire avant le dépôt (priorité décroissante)
 
-- [ ] **Dépôt Git public** (GitHub, GitLab ou Codeberg) : `git init`, commits **par étape réelle** (ne pas antidater), pousser. Vérifier que `configuration/` n'est jamais commité (déjà dans `.gitignore`).
-- [ ] **`LICENSE`** à la racine : choisir une licence OSI (proposition : **EUPL 1.2**, pensée pour les administrations ; ou MIT).
-- [ ] **`README.md`** en français, 2 pages max : concept, architecture (section 3), technologies et licences (ci-dessous), niveau d'engagement **« Créer »** (application nouvelle reposant sur la bibliothèque éprouvée libolm), installation (section 1), limites (section 7), comptes de démonstration (bouton « Données de test »).
-- [ ] **Note de pré-projet** (2 pages) : concept, architecture, protocole Olm/Megolm, composants et licences, niveau d'engagement, innovations, répartition des rôles dans l'équipe.
-- [ ] **Note de sécurité** (2 pages) : menaces (serveur saisi, appareil perdu, agent qui part, intrus, admin compromis, hameçonnage, capture, interception), protections (sections 3 et 4), métadonnées et limites (section 7).
+- [ ] **Dépôt Git public** : créer le dépôt vide sur GitHub, GitLab ou Codeberg, puis pousser. Vérifier que `configuration/` n'est jamais commité.
+- [x] **`LICENSE`** : EUPL 1.2.
+- [x] **`README.md`**.
+- [ ] **Note de pré-projet** : `docs/note-pre-projet.pdf` rédigée, noms et rôles de l'équipe à compléter.
+- [x] **Note de sécurité** : `docs/note-securite.pdf`.
 - [ ] **Vidéo de 3 minutes** : section 5, étapes 1, 2, 4 et 6.
 - [ ] **Fiche équipe** + attestations d'inscription 2026-2027.
 - [ ] **Préparer l'entretien** : chaque membre sait expliquer les fonctions de la section 4.
-- [ ] Bonus **+2** : tests automatisés des fonctions de sécurité (connexion refusée sans TOTP, hiérarchie, refus du clair, révocation).
+- [x] Bonus **+2** : tests automatisés des fonctions de sécurité (`tests/`, 25 tests).
 - [ ] Bonus **+3** : interface en langue nationale ; le mécanisme existe (Paramètres → Langue, objet `LANGS` dans `FasoLink.html`) mais n'a que 9 libellés en Dioula non relus.
 
 ### Technologies et licences à citer dans le README
@@ -139,7 +148,10 @@ Note : un message envoyé à quelqu'un qui ne s'est **jamais connecté** lui ser
 |---|---|---|
 | PostgreSQL | PostgreSQL License | https://www.postgresql.org |
 | Apache CouchDB | Apache 2.0 | https://couchdb.apache.org |
-| Docker / Docker Compose | Apache 2.0 | https://www.docker.com |
+| Docker Engine / Docker Compose | Apache 2.0 | https://www.docker.com |
+| Python | PSF License 2.0 | https://www.python.org |
+| Starlette | BSD-3-Clause | https://www.starlette.io |
+| Pydantic | MIT | https://docs.pydantic.dev |
 | FastAPI | MIT | https://fastapi.tiangolo.com |
 | Uvicorn | BSD-3-Clause | https://www.uvicorn.org |
 | psycopg | LGPL 3.0 | https://www.psycopg.org |

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Note de pré-projet — FasoLink</title>
+<style>
+@page{size:A4;margin:15mm 17mm}
+body{font:10pt/1.36 Calibri,Arial,sans-serif;color:#1a1a1a;margin:0}
+h1{font-size:16pt;margin:0 0 2pt;color:#0b5d3b}
+h2{font-size:11pt;margin:9pt 0 3pt;color:#0b5d3b}
+p{margin:0 0 4pt}.meta{color:#444;margin-bottom:6pt}
+ul{margin:0 0 4pt;padding-left:15pt}li{margin-bottom:1.5pt}
+table{border-collapse:collapse;width:100%;margin:3pt 0 5pt;font-size:9.2pt}
+th,td{border:1px solid #bbb;padding:2pt 5pt;text-align:left;vertical-align:top}th{background:#e9f2ed}
+tr,li{break-inside:avoid}
+</style></head><body>
+<h1>Note de pré-projet — FasoLink</h1>
+<p class="meta">Équipe : [Nom de l'équipe] · Établissement : [Université / école] · Challenge : la messagerie souveraine de l'administration</p>
+
+<h2>1. Concept</h2>
+<p>Les agents publics échangent des informations de service sur des messageries dont les serveurs échappent à l'État. FasoLink offre la simplicité d'une messagerie courante (conversations, groupes, fichiers, photos, vocaux) sur un serveur hébergé par l'État et sans service tiers. Seuls les agents enrôlés y entrent, le serveur ne relaie que des enveloppes chiffrées, et un agent bloqué perd l'accès sur tous ses appareils.</p>
+
+<h2>2. Architecture</h2>
+<ul>
+<li><b>Client web</b> (<code>frontend/FasoLink.html</code>) : interface et chiffrement dans le navigateur ; libolm est servie localement, sans CDN.</li>
+<li><b>API FastAPI</b> (<code>backend/main.py</code>) : enrôlement, mot de passe et TOTP, rôles, révocation, audit, relais d'enveloppes. Elle ne déchiffre aucun message.</li>
+<li><b>PostgreSQL</b> : comptes, appareils, sessions, conversations, membres, journal d'audit en ajout seul. Le compte de l'API a des droits limités.</li>
+<li><b>CouchDB</b> : enveloppes chiffrées uniquement, avec un garde-fou qui refuse tout champ supplémentaire et tout contenu hors du format d'enveloppe.</li>
+<li><b>Déploiement</b> : <code>deployer.bat</code> ou <code>deployer.sh</code> installe et démarre tout en une commande ; les bases, lancées par Docker Compose, n'écoutent que sur 127.0.0.1.</li>
+</ul>
+
+<h2>3. Protocole de chiffrement retenu : Olm/Megolm (Matrix)</h2>
+<p>Chaque appareil crée ses clés Olm. Pour une conversation, l'expéditeur crée une clé de groupe Megolm et l'envoie à chaque appareil membre par un canal Olm individuel. Messages, fichiers, photos et vocaux sont chiffrés par Megolm avant l'envoi. Si un appareil disparaît, l'envoi suivant utilise une nouvelle clé de groupe que l'appareil révoqué ne reçoit pas. Les clés locales sont protégées par une clé dérivée du mot de passe (PBKDF2 de WebCrypto). <b>L'équipe n'a écrit aucune cryptographie</b> : tout passe par libolm, WebCrypto et les bibliothèques citées ci-dessous.</p>
+
+<h2>4. Composants open source et licences</h2>
+<table>
+<tr><th>Composant</th><th>Licence</th><th>Composant</th><th>Licence</th></tr>
+<tr><td>libolm 3.2.15</td><td>Apache 2.0</td><td>FastAPI, Pydantic</td><td>MIT</td></tr>
+<tr><td>PostgreSQL 16</td><td>PostgreSQL License</td><td>Starlette, Uvicorn, HTTPX</td><td>BSD-3-Clause</td></tr>
+<tr><td>Apache CouchDB 3</td><td>Apache 2.0</td><td>psycopg</td><td>LGPL 3.0</td></tr>
+<tr><td>Docker Engine / Compose</td><td>Apache 2.0</td><td>argon2-cffi, PyOTP</td><td>MIT</td></tr>
+<tr><td>Python</td><td>PSF License 2.0</td><td>cryptography</td><td>Apache 2.0 ou BSD-3-Clause</td></tr>
+<tr><td>qrcode-generator</td><td>MIT</td><td>Plus Jakarta Sans</td><td>SIL OFL 1.1</td></tr>
+</table>
+<p>Le code de FasoLink est publié sous <b>EUPL 1.2</b>. Les liens vers chaque projet figurent dans le <code>README.md</code>.</p>
+
+<h2>5. Niveau d'engagement open source</h2>
+<p><b>« Créer »</b> : FasoLink est une application nouvelle, reposant sur la bibliothèque éprouvée libolm.</p>
+
+<h2>6. Fonctionnalités innovantes</h2>
+<ul>
+<li><b>Classification des messages</b> : Diffusion restreinte (expiration à 72 h) et Confidentiel (24 h). Les enveloppes expirées sont supprimées du serveur à la lecture suivante de la conversation ; l'impression et la copie sont bloquées dans l'application.</li>
+<li><b>Accusé de lecture signé</b> : chaque lecture est signée en Ed25519 par l'appareil du lecteur, ce qui donne une trace vérifiable pour les instructions de service.</li>
+<li><b>Annuaire par ministère et fonction</b>, avec des groupes qui suivent l'organisation de l'administration.</li>
+<li><b>Liaisons privées</b> : un seul message reste possible tant que le destinataire n'a pas accepté l'échange.</li>
+<li><b>Bouton d'urgence et effacement à distance</b> : effacement des clés et conversations de l'appareil, suivi de sa révocation.</li>
+<li><b>Dissuasion des captures</b> : filigrane nominatif, flou quand la fenêtre perd le focus, touche Impr. écran signalée au journal d'audit. Les captures ne sont pas bloquées, un navigateur ne le permet pas.</li>
+<li><b>Vérification des appareils par empreinte</b> : si la clé d'un appareil vérifié change, l'envoi est bloqué.</li>
+<li><b>Contrôle du clair à deux niveaux</b> : l'API et CouchDB refusent ce qui n'a pas la forme d'une enveloppe Olm/Megolm.</li>
+<li><b>Messages vocaux chiffrés</b>, utiles aux agents plus à l'aise à l'oral dans une langue nationale.</li>
+</ul>
+
+<h2>7. Répartition des rôles</h2>
+<table>
+<tr><th>Membre</th><th>Filière / niveau</th><th>Rôle</th></tr>
+<tr><td>[Nom 1]</td><td>[Filière, niveau]</td><td>[Rôle]</td></tr>
+<tr><td>[Nom 2]</td><td>[Filière, niveau]</td><td>[Rôle]</td></tr>
+<tr><td>[Nom 3, si l'équipe compte trois membres]</td><td>[Filière, niveau]</td><td>[Rôle]</td></tr>
+</table>
+</body></html>
