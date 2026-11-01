@@ -268,7 +268,10 @@ button.mrow{width:100%;background:none;border:0;text-align:left;font-size:14px}
 .auth .badge{margin-left:auto;flex:none;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:800;color:#fff}.auth .badge.s{background:var(--gold);color:#1A1A1A}.auth .badge.m{background:var(--red)}.auth .badge.a{background:var(--grn)}.auth .mh2{margin:16px 0 0;text-align:left}
 #filigrane{position:absolute;inset:0;pointer-events:none;z-index:2;opacity:.09;background-repeat:repeat}
 :root[data-theme="dark"] #filigrane{opacity:.14;filter:invert(1)}
-body.voile .stage #feed,body.voile .rows{filter:blur(16px);transition:filter .1s}
+.loupe{position:absolute;inset:0;z-index:1;display:flex;align-items:center;justify-content:center;background:rgba(10,5,5,.92);cursor:zoom-out}
+.loupe img{max-width:100%;max-height:100%;object-fit:contain}
+#feed img{cursor:zoom-in}
+body.voile .stage #feed,body.voile .loupe img,body.voile .rows{filter:blur(16px);transition:filter .1s}
 body.voile .stage::after{content:"Contenu masqué : revenez dans FasoLink";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:4;font-weight:800;color:var(--ink)}
 .cls{-webkit-user-select:none;user-select:none}
 #feed img,#feed video{-webkit-user-drag:none;user-select:none}
@@ -405,8 +408,11 @@ function reset(){clearInterval(tm);tm=null;pos=0;p.innerHTML=ic("play",18);du.te
 p.onclick=function(){if(m.src){if(!m.au)m.au=new Audio(m.src);if(m.au.paused)m.au.play();else m.au.pause();}if(tm){clearInterval(tm);tm=null;p.innerHTML=ic("play",18);return;}p.innerHTML=ic("pause",18);tm=setInterval(function(){pos+=.25;if(pos>=m.dur){reset();return;}var k=Math.round(pos/m.dur*m.bars.length);[].forEach.call(bs.children,function(b,i){b.className=i<k?"on":"";});du.textContent=fmt(Math.floor(pos));},250);};
 d.appendChild(p);d.appendChild(bs);d.appendChild(du);}
 else{d.className=sd+" md";if(m.kind==="d"){var f=el(m.src?"a":"div","fl"),i=el("i"),w=el("div");if(m.src){f.href=m.src;f.download=m.name||"fichier";f.style.color="inherit";f.style.textDecoration="none";}i.innerHTML=ic("file");w.appendChild(el("b","",m.name));w.appendChild(el("small","",m.size));f.appendChild(i);f.appendChild(w);d.appendChild(f);}
-else{var x=el(m.kind==="v"?"video":"img");x.src=m.src;if(m.kind==="v")x.controls=true;else x.alt="Photo envoyée";d.appendChild(x);}}
+else{var x=el(m.kind==="v"?"video":"img");x.src=m.src;if(m.kind==="v")x.controls=true;else{x.alt="Photo envoyée";x.onclick=function(){loupe(x.src);};}d.appendChild(x);}}
 d.appendChild(el("div","t",m.time+(m.them?"":" ✓✓")));return d;}
+/* Image agrandie dans la zone de conversation : le filigrane et le flou restent appliqués. Tout clic ou Échap la ferme. */
+function loupe(src){var o=el("div","loupe"),i=el("img"),fin=function(){o.remove();document.removeEventListener("click",fin,true);document.removeEventListener("keydown",touche);},touche=function(e){if(e.key==="Escape")fin();};
+i.src=src;i.alt="Photo agrandie";o.appendChild(i);document.querySelector(".stage").appendChild(o);document.addEventListener("click",fin,true);document.addEventListener("keydown",touche);}
 
 function $(i){return document.getElementById(i);}
 var seg=document.querySelector('.seg'),newg=$('newg'),side=$('side'),scrim=$('scrim'),burger=$('burger'),gm=$('gm'),pm=$('pm'),gn=$('gn'),gmem=$('gmem'),gerr=$('gerr'),sn=$('sn');
@@ -762,7 +768,7 @@ if(d&&d.appareil_revoque)toast('Ancien appareil révoqué : nouvelles clés cré
 return chargerTout().then(function(){demarrerSuivi();Object.keys(COFFRE.sortants).forEach(partagerDiff);});});});}
 function deconnecterLocal(effacer){clearInterval(TIMER);if(EVT){EVT.abort();EVT=null;}if(effacer&&MATRICULE)Coffre.effacer(MATRICULE);else Coffre.sauver();
 if(ACC){try{ACC.free();}catch(e){}}ACC=null;COFFRE=null;SESSION=null;API.garder(null);
-garderPK(null);LSIG='';var fg=document.getElementById('filigrane');if(fg)fg.remove();document.body.classList.remove('voile');CACHE={};INDEX={};VUES={};SIG={};CLES_UTIL={};DOCS={};chats.length=0;users.length=0;if(cur)$('back').click();cur=null;refresh();}
+garderPK(null);LSIG='';var fg=document.getElementById('filigrane');if(fg)fg.remove();var lp=document.querySelector('.loupe');if(lp)lp.remove();document.body.classList.remove('voile');CACHE={};INDEX={};VUES={};SIG={};CLES_UTIL={};DOCS={};chats.length=0;users.length=0;if(cur)$('back').click();cur=null;refresh();}
 
 /* ---------- Écrans de connexion et d'activation ---------- */
 function champ(f,id,lbl,type,extra){var l=el('label','sr',lbl),i=el('input');l.htmlFor=id;i.id=id;i.type=type||'text';i.placeholder=lbl;i.autocomplete='off';i.required=true;if(extra)Object.keys(extra).forEach(function(k){i.setAttribute(k,extra[k]);});f.appendChild(l);f.appendChild(i);return i;}
@@ -910,7 +916,7 @@ document.addEventListener('keyup',tentative);document.addEventListener('keydown'
 window.addEventListener('beforeprint',function(){if(SESSION){signaler('impression');toast('Impression interdite');}});
 document.addEventListener('copy',function(e){var s=window.getSelection(),n=s&&s.anchorNode;n=n&&(n.nodeType===1?n:n.parentElement);
 if(n&&n.closest&&n.closest('.cls')){e.preventDefault();toast('Copie interdite sur un message classifié');}});
-document.addEventListener('contextmenu',function(e){if(e.target.closest&&e.target.closest('.cls,#feed img,#feed video'))e.preventDefault();});
+document.addEventListener('contextmenu',function(e){if(e.target.closest&&e.target.closest('.cls,#feed img,#feed video,.loupe img'))e.preventDefault();});
 
 /* ---------- Démarrage ---------- */
 if(API.branche&&API.jeton())apresConnexion(null,null).catch(function(x){API.garder(null);ecranConnexion(x.message);});
