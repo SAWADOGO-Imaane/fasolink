@@ -1,6 +1,6 @@
 @echo off
 rem =============================================================================
-rem  FasoLink - Deploiement complet (Windows) : Python, dependances, bases, comptes de demo
+rem  FasoLink - Installation en une commande (Windows) : Python, dependances, bases, comptes de demo, puis lancement
 rem  Prerequis : Python 3.10+ (python.org, case "Add to PATH") et Docker Desktop demarre.
 rem  Rejouable sans risque : mots de passe et donnees existants sont conserves.
 rem =============================================================================
@@ -11,7 +11,7 @@ cd /d "%~dp0"
 echo.
 echo ==^> Verification de Python
 set "PY=python"
-where py >nul 2>nul && set "PY=py -3"
+py -3 --version >nul 2>nul && set "PY=py -3"
 %PY% --version >nul 2>nul
 if errorlevel 1 (
   echo [ERREUR] Python 3.10+ est requis : https://www.python.org/downloads/  ^(cocher "Add python.exe to PATH"^)
@@ -41,6 +41,8 @@ echo     [OK] Dependances installees.
 
 ".venv\Scripts\python.exe" outils\deployer.py
 if errorlevel 1 ( echo [ERREUR] Le deploiement a echoue : lisez les messages ci-dessus. & goto :fin )
+call "%~dp0lancer.bat" %*
+exit /b
 
 :fin
 echo.
