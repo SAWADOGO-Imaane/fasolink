@@ -107,7 +107,7 @@ Note : un message envoyé à quelqu'un qui ne s'est **jamais connecté** lui ser
 | Le serveur ne peut pas lire les messages | ✅ |
 | Métadonnées **documentées** | ✅ `docs/note-securite.pdf` |
 | Comptes de démonstration fictifs | ✅ |
-| README, LICENSE, notes, tests | ✅ (noms de l'équipe à compléter dans la note de pré-projet) |
+| README, LICENSE, notes, tests | ✅ |
 | Dépôt Git public, vidéo, fiche équipe | ❌ **voir section 8** |
 
 ---
@@ -134,7 +134,7 @@ Note : un message envoyé à quelqu'un qui ne s'est **jamais connecté** lui ser
 - [ ] **Dépôt Git public** : créer le dépôt vide sur GitHub, GitLab ou Codeberg, puis pousser. Vérifier que `configuration/` n'est jamais commité.
 - [x] **`LICENSE`** : MIT.
 - [x] **`README.md`**.
-- [ ] **Note de pré-projet** : `docs/note-pre-projet.pdf` rédigée, noms et rôles de l'équipe à compléter.
+- [x] **Note de pré-projet** : `docs/note-pre-projet.pdf`.
 - [x] **Note de sécurité** : `docs/note-securite.pdf`.
 - [ ] **Vidéo de 3 minutes** : section 5, étapes 1, 2, 4 et 6.
 - [ ] **Fiche équipe** + attestations d'inscription 2026-2027.
