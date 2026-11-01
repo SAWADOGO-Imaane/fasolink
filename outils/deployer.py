@@ -134,14 +134,17 @@ adm.put("/messages/_design/garde", json=garde)
 
 api = httpx.Client(base_url=B, auth=(api_user, api_pass), timeout=15)
 anonyme = httpx.get(B + "/messages", timeout=15).status_code
+ENVELOPPE = '{"v":1,"sid":"c2lk","ct":"Zm9v"}'
 clair = api.put("/messages/test-garde", json={"conversation": "c", "expediteur": "e", "horodatage": "2026-01-01T00:00:00Z",
-                                              "chiffre": "Zm9v", "text": "bonjour"}).status_code
+                                              "chiffre": ENVELOPPE, "text": "bonjour"}).status_code
+valeur = api.put("/messages/test-garde", json={"conversation": "c", "expediteur": "e", "horodatage": "2026-01-01T00:00:00Z",
+                                               "chiffre": "bonjour"}).status_code
 regles = api.put("/messages/_design/autre", json={"views": {}}).status_code
-r = api.put("/messages/test-garde", json={"conversation": "c", "expediteur": "e", "horodatage": "2026-01-01T00:00:00Z", "chiffre": "Zm9v"})
+r = api.put("/messages/test-garde", json={"conversation": "c", "expediteur": "e", "horodatage": "2026-01-01T00:00:00Z", "chiffre": ENVELOPPE})
 if r.status_code == 201:
     adm.delete("/messages/test-garde", params={"rev": r.json()["rev"]})
 (ok if anonyme == 401 else attention)("Lecture anonyme refusée." if anonyme == 401 else "La lecture anonyme n'est pas refusée.")
-(ok if clair == 403 else attention)("Un champ en clair est rejeté." if clair == 403 else "Le garde-fou « aucun clair » n'est pas confirmé.")
+(ok if clair == valeur == 403 else attention)("Un champ ou un contenu en clair est rejeté." if clair == valeur == 403 else "Le garde-fou « aucun clair » n'est pas confirmé.")
 (ok if r.status_code == 201 else attention)("Une enveloppe chiffrée est acceptée." if r.status_code == 201 else "L'enveloppe de test est refusée.")
 (ok if regles == 403 else attention)("Le compte API ne peut pas modifier les règles." if regles == 403 else "Le compte API peut modifier les règles.")
 
@@ -153,6 +156,6 @@ if r.returncode != 0:
 
 print("""
 ============================================================================
- Déploiement terminé. Lancez maintenant :  lancer.bat  (Windows)  ou  bash lancer.sh  (Linux)
+ Déploiement terminé. Relances suivantes :  lancer.bat  (Windows)  ou  bash lancer.sh  (Linux)
  Secrets : configuration/.env et configuration/demo.json (à ne jamais publier)
 ============================================================================""")

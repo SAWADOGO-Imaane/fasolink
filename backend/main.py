@@ -4,23 +4,25 @@ Rôle de ce fichier : comptes, rôles, sessions, révocation, audit et relais
 d'enveloppes DÉJÀ CHIFFRÉES. Le serveur ne chiffre ni ne déchiffre aucun message :
 le chiffrement de bout en bout se fait dans le navigateur (bibliothèque éprouvée).
 
-Installation :  pip install fastapi uvicorn "psycopg[binary]" httpx argon2-cffi pyotp
-Initialisation (une fois) :  python main.py init     (comptes de démonstration fictifs)
-Lancement :  python main.py        puis  http://127.0.0.1:8000
+Installation et lancement :  deployer.bat (Windows) ou bash deployer.sh (Linux) ; relances : lancer.bat ou bash lancer.sh
+Initialisation seule :  python main.py init     (comptes de démonstration fictifs)
 
 Second facteur : TOTP (pyotp, RFC 6238), secret remis à l'activation, chiffré au repos (Fernet).
 Jetons de session : seul leur SHA-256 est stocké (une fuite de la base ne donne pas les sessions).
 HTTPS par défaut (certificat auto-signé généré dans configuration/tls) ; aucun journal d'accès (ni IP ni URL) ;  python main.py --http  pour le désactiver.
 Temps réel : GET /evenements (attente longue sur le flux de changements CouchDB).
 
-Pas encore faits : liaison avec Neo4j, appels audio/vidéo, limitation de débit partagée entre processus.
+Limite connue : la limitation des tentatives de connexion n'est pas partagée entre processus.
 """
 import asyncio
+import base64
+import binascii
 import datetime as dt
 import hashlib
 import json
 import mimetypes
 import os
+import re
 import secrets
 import sys
 import time
@@ -84,7 +86,7 @@ def devoiler(b) -> str:
         return FERNET.decrypt(bytes(b)).decode()
     except InvalidToken:
         raise HTTPException(500, "Secret du second facteur illisible (clé FASOLINK_CLE_TOTP modifiée ?)")
-PG = dict(host="127.0.0.1", port=5432, dbname=os.environ.get("POSTGRES_DB", "comptes"),
+PG = dict(host="127.0.0.1", port=int(os.environ.get("POSTGRES_PORT", 5432)), dbname=os.environ.get("POSTGRES_DB", "comptes"),
           user=os.environ.get("POSTGRES_API_USER", "fasolink_api"),
           password=os.environ.get("POSTGRES_API_PASSWORD", ""))
 COUCH = "http://127.0.0.1:5984/messages"
@@ -560,6 +562,35 @@ def membre_actif(c, cid, u):
     return r
 
 
+B64 = re.compile(r"^[A-Za-z0-9+/]+={0,2}$")
+
+
+def charge_olm(valeur):
+    """Forme d'un message Olm/Megolm : base64 dont le premier octet est la version du format (3). Rien n'est déchiffré."""
+    if not isinstance(valeur, str) or len(valeur) < 60 or not B64.match(valeur):
+        return False
+    brut = valeur.rstrip("=")
+    try:
+        return base64.b64decode(brut + "=" * (-len(brut) % 4))[0] == 3
+    except binascii.Error:
+        return False
+
+
+def enveloppe_valide(chiffre, type_):
+    """Refuse tout ce qui n'a pas la forme d'une enveloppe produite par le client (aucun champ libre, aucun texte)."""
+    try:
+        e = json.loads(chiffre)
+    except ValueError:
+        return False
+    if not isinstance(e, dict) or e.get("v") != 1:
+        return False
+    if type_ == "msg":
+        return set(e) == {"v", "sid", "ct"} and isinstance(e["sid"], str) and bool(B64.match(e["sid"])) and charge_olm(e["ct"])
+    if set(e) != {"v", "de", "ck", "pour"} or not isinstance(e["pour"], dict) or not e["pour"]:
+        return False
+    return all(isinstance(p, dict) and set(p) == {"t", "b"} and p["t"] in (0, 1) and charge_olm(p["b"]) for p in e["pour"].values())
+
+
 class Enveloppe(BaseModel):
     chiffre: str = Field(min_length=1, max_length=8_000_000)   # contenu déjà chiffré par le client (pièces jointes ~3 Mo)
     expire_le: Optional[dt.datetime] = None   # date réelle (et non chaîne libre) : comparaison fiable
@@ -572,8 +603,8 @@ def envoyer(cid: uuid.UUID, b: Enveloppe, u=Depends(courant)):
         conv = membre_actif(c, cid, u)
     if conv["liaison"] == "refusee":
         raise HTTPException(403, "Liaison refusée")
-    if " " in b.chiffre:
-        raise HTTPException(400, "Le contenu doit être chiffré (chaîne encodée, sans espace)")
+    if not enveloppe_valide(b.chiffre, b.type):
+        raise HTTPException(400, "Le contenu doit être une enveloppe chiffrée")
     if conv["liaison"] == "demande" and b.type == "msg":
         # Liaison non acceptée : le demandeur n'a droit qu'à un message, le destinataire doit d'abord accepter
         if conv["cree_par"] != u["id"]:
@@ -609,7 +640,7 @@ def lire(cid: uuid.UUID, apres: Optional[dt.datetime] = None, u=Depends(courant)
     debut = debut.astimezone(dt.timezone.utc).isoformat()
     now = maintenant().isoformat()
     # Pagination par signet : on lit toute la conversation (pas 500 documents au hasard), puis on garde les 500 derniers.
-    # Amélioration prévue : index CouchDB (conversation, horodatage) créé par install.sh.
+    # Amélioration prévue : index CouchDB (conversation, horodatage) créé par outils/deployer.py.
     docs, signet = [], None
     while True:
         q = {"selector": {"conversation": str(cid), "horodatage": {"$gte": debut}}, "limit": 1000}
