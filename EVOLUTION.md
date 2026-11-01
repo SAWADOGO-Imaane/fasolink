@@ -1,3 +1,4 @@
+
 # FasoLink : où en est le projet (1er novembre 2026)
 
 Messagerie souveraine pour les agents de l'administration burkinabè (Sprint pré-hackathon 226, MTDPCE – DGTD).
@@ -86,12 +87,30 @@ Principe à savoir dire : *chaque appareil a une paire de clés Olm ; pour une c
 
 ## 5. Scénario de test (et de la vidéo de 3 minutes)
 
-1. **Onglet 1** : Salif Zongo (agent). **Onglet 2** : Aminata Kaboré (agent). Ils ouvrent leur conversation et échangent un message, une photo, un vocal.
-2. **Le serveur ne lit rien** : ouvrir `http://127.0.0.1:5984/_utils` (identifiants `COUCHDB_USER` / `COUCHDB_PASSWORD` de `configuration/.env`), base `messages` : aucun texte lisible.
-3. **Onglet 3** : Dr Issa Compaoré (superviseur). Groupe « Cellule de crise sanitaire » : envoyer un message **classifié** (cadenas), voir les accusés de lecture signés.
-4. **Révocation** : onglet « Utilisateurs », choisir Aminata, « Bloquer l'accès ». Son onglet revient à l'écran de connexion en quelques secondes ; les nouveaux messages du groupe utilisent une nouvelle clé.
-5. **Intrus** : se connecter avec un matricule inventé (refusé), ou un agent qui tente de lire un groupe dont il n'est pas membre (refusé par le serveur).
-6. **Innovation** : classification + expiration, accusé de lecture signé, annuaire par ministère, bouton d'urgence (menu), filigrane anti-capture.
+Trois comptes suffisent, chacun dans un **nouvel** onglet (Ctrl+T) : **Aminata Kaboré** et **Ibrahim Sanou** (agents, liaison acceptée, membres du groupe « Cellule de crise sanitaire ») et **Dr Issa Compaoré** (superviseur, membre du même groupe). Choisir chaque compte avec le bouton « Données de test ».
+
+### Test complet, avant de filmer
+
+1. **Connexion** : ouvrir le formulaire, cliquer sur **Afficher** puis **Masquer** dans le champ du mot de passe, puis se connecter.
+2. **Échange privé** (Aminata et Ibrahim) : envoyer un message, une photo, un vocal et un PDF. Le destinataire clique sur la photo pour l'agrandir, puis sur le nom du PDF pour le télécharger et l'ouvrir.
+3. **Le serveur ne lit rien** : dans un terminal, `.venv\Scripts\python.exe outils\inspecter_bases.py "mot envoyé"` doit afficher 0 enveloppe contenant ce texte.
+4. **Classification** (Dr Issa, groupe « Cellule de crise sanitaire ») : envoyer un message classifié (cadenas), le lire côté Aminata et Ibrahim, puis voir les accusés de lecture signés.
+5. **Révocation** (Dr Issa, onglet « Utilisateurs ») : choisir Ibrahim, puis « Bloquer l'accès ». Son onglet revient à la connexion en 3 s environ. Aminata envoie ensuite un message au groupe : Ibrahim ne peut plus rien recevoir.
+6. **Intrus** : tenter une connexion avec le matricule `BF-9999`, qui doit être refusée.
+7. **Langues** : Paramètres, Langue, puis Dioula et Mooré, avant de revenir au français.
+8. **Remise en état** : Dr Issa débloque Ibrahim, qui se reconnecte. Son appareil a de nouvelles clés : ses anciens messages restent illisibles, c'est normal.
+
+### Vidéo de 3 minutes
+
+| Temps | À l'écran | À dire |
+|---|---|---|
+| 0:00-0:20 | Écran de connexion, compte de test | Le problème : les agents publics échangent sur des messageries qui échappent à l'État. FasoLink est hébergée par l'État, et seuls les agents enrôlés y entrent. |
+| 0:20-1:10 | Aminata et Ibrahim échangent message, photo et PDF, puis `inspecter_bases.py` | Tout est chiffré dans le navigateur avec Olm/Megolm. Le serveur ne stocke que des enveloppes illisibles : le mot cherché n'y figure pas. |
+| 1:10-1:55 | Dr Issa bloque Ibrahim dans le groupe, puis Aminata envoie un message | Ibrahim perd l'accès aux conversations sur ses appareils. Les nouveaux messages utilisent une nouvelle clé qu'il ne reçoit jamais. |
+| 1:55-2:45 | Message classifié et accusé de lecture signé (innovation principale) | Exemple d'une instruction de service en cellule de crise : expiration automatique et preuve de lecture signée. |
+| 2:45-3:00 | Logo FasoLink et lien du dépôt | Open source sous licence MIT, sans service tiers. Les limites sont détaillées dans la note de sécurité. |
+
+Ne jamais afficher `configuration/.env`, `demo.json` ni la fenêtre de `deployer.bat`, qui contient des mots de passe. Pour filmer une seconde prise, utiliser un autre agent du groupe (par exemple Adama Traoré) ou remettre Ibrahim en état avec l'étape 8.
 
 Note : un message envoyé à quelqu'un qui ne s'est **jamais connecté** lui sera lisible dès que l'expéditeur rouvrira FasoLink (sa clé lui est alors transmise). C'est normal en chiffrement de bout en bout.
 
