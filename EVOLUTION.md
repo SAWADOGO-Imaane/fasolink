@@ -141,7 +141,7 @@ Note : un message envoyé à quelqu'un qui ne s'est **jamais connecté** lui ser
 - [ ] **Fiche équipe** + attestations d'inscription 2026-2027.
 - [ ] **Préparer l'entretien** : chaque membre sait expliquer les fonctions de la section 4.
 - [x] Bonus **+2** : tests automatisés des fonctions de sécurité (`tests/`, 26 tests).
-- [ ] Bonus **+3** : interface en langue nationale ; le mécanisme existe (Paramètres → Langue, objet `LANGS` dans `FasoLink.html`) mais n'a que 9 libellés en Dioula non relus.
+- [ ] Bonus **+3** : interface en langue nationale ; le mécanisme existe (Paramètres → Langue, objet `LANGS` dans `FasoLink.html`) mais n'a que 9 libellés en dioula et 9 en mooré, provisoires et non relus par un locuteur.
 
 ### Technologies et licences à citer dans le README
 

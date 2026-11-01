@@ -261,6 +261,9 @@ button.mrow{width:100%;background:none;border:0;text-align:left;font-size:14px}
 .mcard input[type=password]{width:100%;height:48px;border-radius:16px;border:1.5px solid var(--line);background:var(--bg);padding:0 16px;outline:0;margin-top:10px}
 .auth .mcard input[type=text]{margin-top:10px}
 .mcard input[type=password]:focus{border-color:var(--red)}
+.mdpw{position:relative}
+.mdpw input{padding-right:84px!important}
+.voir{position:absolute;right:8px;top:18px;margin:0!important;height:32px;padding:0 10px;border:0;border-radius:10px;background:transparent;color:var(--red);font:inherit;font-weight:700;cursor:pointer}
 .auth .demo{width:100%;margin-top:8px;font-size:13px}
 .from{display:block;font-size:12px;font-weight:800;color:var(--red);margin-bottom:2px}
 .qr{background:#fff;border-radius:16px;padding:8px;width:min(220px,70%);margin:12px auto 0}.qr svg{display:block;width:100%;height:auto}
@@ -527,8 +530,9 @@ function wipeSelf(){aud('Bouton d’urgence','Cet appareil');chats.length=0;cur=
 var l=el('div','lockd'),b=el('button','solid','Recharger l’application');l.setAttribute('role','alertdialog');l.appendChild(el('h2','','Appareil verrouillé'));l.appendChild(el('p','','Les conversations et les clés de cet appareil ont été effacées et l’appareil est révoqué. Pour le réactiver, demandez un nouveau code d’activation à votre administrateur.'));b.type='button';b.onclick=function(){location.reload();};l.appendChild(b);document.body.appendChild(l);b.focus();}
 function urgence(){var w=el('div','act'),b=el('button','danger'),a=false;b.type='button';b.innerHTML=ic('trash')+'<span>Verrouiller et effacer cet appareil</span>';b.onclick=function(){if(!a){a=true;b.lastChild.textContent='Confirmer l’effacement';return;}pm.hidden=true;wipeSelf();};w.appendChild(b);panel('Bouton d’urgence',[el('p','mh','Appareil perdu ou volé : il est effacé (conversations et clés locales) puis révoqué. Vous devrez le réactiver avec un nouveau code d’activation.'),w]);}
 var bu=item('shield','Bouton d’urgence',urgence);bu.classList.add('urg');sn.insertBefore(bu,sn.children[4]);
-/* ===== Langues nationales : ajouter une langue = ajouter une entrée dans LANGS (texte français → traduction) ===== */
-var LANGS={fr:{},dj:{'Groupes':'Tɔnw','Utilisateurs':'Baarakɛlaw','Rechercher une conversation':'Kuma ɲini','Message chiffré':'Cikan dogolen','Nouvelle conversation':'Kuma kura','Créer un groupe':'Tɔn labɛn','Fermer':'Datugu','Annuler':'Dabila','Envoyer':'Ka ci'}},LNAME={fr:'Français',dj:'Dioula'},LCUR='fr',LBUSY=false;
+/* ===== Langues nationales : ajouter une langue = ajouter une entrée dans LANGS (texte français → traduction).
+   Dioula et mooré : libellés provisoires, à faire relire par un locuteur. ===== */
+var LANGS={fr:{},dj:{'Groupes':'Tɔnw','Utilisateurs':'Baarakɛlaw','Rechercher une conversation':'Kuma ɲini','Message chiffré':'Cikan dogolen','Nouvelle conversation':'Kuma kura','Créer un groupe':'Tɔn labɛn','Fermer':'Datugu','Annuler':'Dabila','Envoyer':'Ka ci'},mo:{'Groupes':'Sulli','Utilisateurs':'Tʋʋmdba','Rechercher une conversation':'Bao sõsgo','Message chiffré':'Koɛɛg sẽn solge','Nouvelle conversation':'Sõsg paalga','Créer un groupe':'Naan sull','Fermer':'Pag','Annuler':'Bas','Envoyer':'Tʋm'}},LNAME={fr:'Français',dj:'Dioula',mo:'Mooré'},LCUR='fr',LBUSY=false;
 function trWalk(map){if(!Object.keys(map).length)return;LBUSY=true;var w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),n,t;while((n=w.nextNode())){t=n.nodeValue.trim();if(t&&map[t]!==undefined)n.nodeValue=n.nodeValue.replace(t,map[t]);}
 [].forEach.call(document.querySelectorAll('[placeholder],[aria-label]'),function(e){['placeholder','aria-label'].forEach(function(a){var v=e.getAttribute(a);if(v&&map[v]!==undefined)e.setAttribute(a,map[v]);});});LBUSY=false;}
 function inv(m){var r={};Object.keys(m).forEach(function(k){r[m[k]]=k;});return r;}
@@ -771,7 +775,10 @@ if(ACC){try{ACC.free();}catch(e){}}ACC=null;COFFRE=null;SESSION=null;API.garder(
 garderPK(null);LSIG='';var fg=document.getElementById('filigrane');if(fg)fg.remove();var lp=document.querySelector('.loupe');if(lp)lp.remove();document.body.classList.remove('voile');CACHE={};INDEX={};VUES={};SIG={};CLES_UTIL={};DOCS={};chats.length=0;users.length=0;if(cur)$('back').click();cur=null;refresh();}
 
 /* ---------- Écrans de connexion et d'activation ---------- */
-function champ(f,id,lbl,type,extra){var l=el('label','sr',lbl),i=el('input');l.htmlFor=id;i.id=id;i.type=type||'text';i.placeholder=lbl;i.autocomplete='off';i.required=true;if(extra)Object.keys(extra).forEach(function(k){i.setAttribute(k,extra[k]);});f.appendChild(l);f.appendChild(i);return i;}
+function champ(f,id,lbl,type,extra){var l=el('label','sr',lbl),i=el('input');l.htmlFor=id;i.id=id;i.type=type||'text';i.placeholder=lbl;i.autocomplete='off';i.required=true;if(extra)Object.keys(extra).forEach(function(k){i.setAttribute(k,extra[k]);});f.appendChild(l);
+if(i.type!=='password'){f.appendChild(i);return i;}
+var w=el('div','mdpw'),b=el('button','voir','Afficher');b.type='button';b.setAttribute('aria-pressed','false');b.onclick=function(){var v=i.type==='password';i.type=v?'text':'password';b.textContent=v?'Masquer':'Afficher';b.setAttribute('aria-pressed',String(v));};
+w.appendChild(i);w.appendChild(b);f.appendChild(w);return i;}
 function ecran(titre){var o=document.getElementById('auth');if(o)o.remove();o=el('div','lockd auth');o.id='auth';o.setAttribute('role','dialog');o.setAttribute('aria-modal','true');o.setAttribute('aria-label',titre);
 o.appendChild(el('h2','','FasoLink'));o.appendChild(el('p','','Messagerie souveraine de l’État · accès réservé aux agents enrôlés'));
 var f=el('form','mcard');f.noValidate=true;f.appendChild(el('h2','',titre));o.appendChild(f);document.body.appendChild(o);return f;}
