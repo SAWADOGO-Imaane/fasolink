@@ -132,7 +132,7 @@ Note : un message envoyé à quelqu'un qui ne s'est **jamais connecté** lui ser
 ## 8. Reste à faire avant le dépôt (priorité décroissante)
 
 - [ ] **Dépôt Git public** : créer le dépôt vide sur GitHub, GitLab ou Codeberg, puis pousser. Vérifier que `configuration/` n'est jamais commité.
-- [x] **`LICENSE`** : EUPL 1.2.
+- [x] **`LICENSE`** : MIT.
 - [x] **`README.md`**.
 - [ ] **Note de pré-projet** : `docs/note-pre-projet.pdf` rédigée, noms et rôles de l'équipe à compléter.
 - [x] **Note de sécurité** : `docs/note-securite.pdf`.

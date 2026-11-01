@@ -48,7 +48,7 @@ Le déploiement crée 10 comptes **fictifs** (1 superviseur, 2 administrateurs, 
 - **Interface :** [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT), [Plus Jakarta Sans](https://github.com/tokotype/PlusJakartaSans) (SIL OFL 1.1)
 - **Tests :** [pytest](https://pytest.org) (MIT)
 
-Le code de FasoLink est publié sous **EUPL 1.2** (fichier `LICENSE`). Les armoiries du Burkina Faso affichées dans l'interface ne sont pas couvertes par cette licence. Docker Desktop, simple commodité sous Windows, n'est pas open source ; le serveur fonctionne avec Docker Engine.
+Le code de FasoLink est publié sous **MIT** (fichier `LICENSE`). Les armoiries du Burkina Faso affichées dans l'interface ne sont pas couvertes par cette licence. Docker Desktop, simple commodité sous Windows, n'est pas open source ; le serveur fonctionne avec Docker Engine.
 
 ## Limites
 
