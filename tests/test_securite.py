@@ -201,6 +201,11 @@ def test_blocage_trace_dans_un_journal_ineffacable(superviseur, agent_neuf):
 
 
 # --------------------------------------------------------------------------- mode démonstration
+def test_description_de_l_api_non_publiee():
+    for chemin in ("/docs", "/redoc", "/openapi.json"):
+        assert api.get(chemin).status_code == 404
+
+
 def test_mode_demonstration_ferme_par_defaut():
     assert api.get("/demo/comptes").status_code == 404
     assert api.post("/demo/identifiants", json={"matricule": "BF-0001"}).status_code == 404

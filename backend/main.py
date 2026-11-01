@@ -98,7 +98,7 @@ DUREE_SESSION = dt.timedelta(hours=8)
 ECHECS: dict = {}                # clé (connexion / activation + matricule) -> horodatages des échecs
 DERNIER_TOTP: dict = {}          # matricule -> dernier pas TOTP accepté (anti-rejeu)
 
-app = FastAPI(title="FasoLink API", docs_url="/docs")
+app = FastAPI(title="FasoLink API", docs_url=None, redoc_url=None, openapi_url=None)   # API non décrite publiquement
 
 
 @contextmanager
