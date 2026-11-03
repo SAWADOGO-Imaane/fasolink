@@ -102,6 +102,8 @@ Principe à savoir dire : *chaque appareil a une paire de clés Olm ; pour une c
 | Dépôt Git public, vidéo, fiche équipe | ✅
 
 
+
+
 ---
 
 ## 7. Limites connues (à écrire honnêtement dans la note de sécurité)
